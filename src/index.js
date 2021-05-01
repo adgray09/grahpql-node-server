@@ -1,49 +1,36 @@
+// request imports
 const fs = require('fs');
 const path = require('path');
+// utils
 const { getUserId } = require('./utils');
+
+//resolvers
+const Query = require('./resolvers/Query');
+const Mutation = require('./resolvers/Mutation');
+const User = require('./resolvers/User');
+const Link = require('./resolvers/Link');
+const Subscription = require('./resolvers/Subscription');
+const Vote = require('./resolvers/Vote')
+
+//apollo stuff
 const { ApolloServer } = require('apollo-server');
+//prisma
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
-const resolvers = {
-    Query: {
-        info: () => `this is the API of a HackerNews Clone`,
-        feed: async (parent, args, context, info) => {
-            return context.prisma.link.findMany()
-        },
-        link: (_, args) => {
-            const link = links.find(link => link.id === args.id)
-            return link
-        }
-    },
-    Mutation: {
-        post: (parent, args, context, info) => {
-            const newLink = context.prisma.link.create({
-                data: {
-                    url: args.url,
-                    description: args.description,
-                },
-            })
-            return newLink
-        },
-        updateLink: (parent, args) => {
-            links.forEach((link) => {
-                if (link.id === args.id) {
-                    link.id = args.id;
-                    link.url = args.url
-                    link.description = args.description
-                }
-                return link
-            })
-        },
-        deleteLink: (parent, args) => {
-            const removeIndex = links.findIndex(item => item.id === args.id);
-            const removedLink = links[removeIndex];
-            links.splice(removeIndex, 1);
+//pubsub
+const { PubSub } = require('apollo-server');
+const pubsub = new PubSub()
 
-            return removedLink
-        }
-    }
+
+// group resolvers
+const resolvers = {
+    Query,
+    Mutation,
+    Subscription,
+    User,
+    Link,
+    Vote,
 }
 
 const server = new ApolloServer({
@@ -56,6 +43,7 @@ const server = new ApolloServer({
         return {
             ...req,
             prisma,
+            pubsub,
             userId:
                 req && req.headers.authorization
                     ? getUserId(req)
